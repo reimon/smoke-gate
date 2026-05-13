@@ -188,13 +188,63 @@ if (report.failed > 0) {
 
 O smoke gate tem **um** trabalho: garantir que cada endpoint **executa sem 500**. Não é cobertura, é guarda de regressão de drift.
 
+## `smoke-gate audit` — modo proativo (v0.2+)
+
+Além do CI gate reativo, o pacote vem com um **scanner estático** que encontra padrões frágeis no código **antes** deles virarem bug.
+
+```bash
+# Roda detectores e gera audit-report.md
+npx smoke-gate audit --llm anthropic
+
+# Modo offline (sem LLM, só detectores deterministicos):
+npx smoke-gate audit --llm none
+
+# Específico:
+npx smoke-gate audit --root ./api --detectors sqlDrift --out drift.md
+```
+
+### Detectores
+
+| Detector | O que pega |
+|---|---|
+| `sqlDrift` | Colunas referenciadas em SQL que não existem nas migrations (`lat.created_at` quando schema tem `imported_at`). Cross-ref schema completo: base + ALTER + CREATE. |
+| `authGaps` | Rotas com `:userId`/`:profileId` sem middleware tipo `checkUserOwnership`. Ignora routers com auth mount-level. |
+| `errorLeak` | `res.status(5xx).json({ message: err.message })` — vaza tabelas/paths/IPs internos pro cliente. |
+| `smokeCoverage` | Endpoints declarados que não aparecem em nenhum `*.smoke.test.ts`. |
+
+### LLMs suportados
+
+| Modo | Var de env | Custo |
+|---|---|---|
+| `--llm none` | — | grátis (sem enriquecimento) |
+| `--llm anthropic` | `ANTHROPIC_API_KEY` | ~$0.001/finding com Claude Haiku |
+| `--llm openai` | `OPENAI_API_KEY` | ~$0.001/finding com gpt-4o-mini |
+| `--llm ollama` | `OLLAMA_URL` (default localhost:11434), `OLLAMA_MODEL` (default llama3.2) | grátis (local) |
+
+Sem LLM: o report tem o fix sugerido pelo detector (regex/heuristic).
+Com LLM: o report ganha explicação contextual + diff unificado + comando bash pronto pra colar.
+
+### Output
+
+`audit-report.md` agrupado por severidade. Exit code **2** se houver findings críticos — bloqueia merge se rodar em CI:
+
+```yaml
+# .github/workflows/audit.yml
+- name: Code audit (smoke-gate)
+  env:
+    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  run: npx smoke-gate audit --llm anthropic --out audit-report.md
+```
+
 ## Roadmap
 
-- [x] v0.1 — core + Express + pg + vitest
-- [ ] v0.2 — adapter Fastify
-- [ ] v0.3 — adapter Next.js API Routes
-- [ ] v0.4 — adapters Drizzle/Prisma
-- [ ] v0.5 — GitHub Action `kaiketsu/smoke-gate-action@v1` (polyglot)
+- [x] v0.1 — core + Express + pg + receita vitest
+- [x] v0.2 — `smoke-gate audit` CLI + 4 detectores + 4 LLM modes
+- [ ] v0.3 — adapter Fastify + Drizzle/Prisma
+- [ ] v0.4 — adapter Next.js API Routes
+- [ ] v0.5 — mais detectores (race patterns, JSON.parse sem try, mocked DB tests)
+- [ ] v0.6 — modo `--apply` (aplicar fixes via patch automaticamente)
+- [ ] v0.7 — GitHub Action `kaiketsu/smoke-gate-action@v1` (polyglot)
 
 ## Licença
 
