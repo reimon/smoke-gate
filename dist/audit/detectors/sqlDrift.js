@@ -90,8 +90,10 @@ exports.sqlDriftDetector = {
                     if (cteNames.has(ref.alias))
                         continue;
                     const table = aliasMap.get(ref.alias);
-                    if (!table)
+                    if (table === undefined)
                         continue; // alias desconhecido — subquery, ignore
+                    if (table === null)
+                        continue; // ambíguo (reusado em subqueries diferentes)
                     // CTE também aparece como alias quando consumida (FROM cte_name)
                     if (cteNames.has(table))
                         continue;
@@ -298,6 +300,12 @@ function parseCteNames(sql) {
 }
 /**
  * Extrai mapa { alias → table } a partir de FROM/JOIN ... [AS] alias.
+ *
+ * Quando o MESMO alias aparece com tabelas diferentes (típico em subqueries
+ * dentro do mesmo template literal — `JOIN pdi_cycles c ...` em um lugar e
+ * `FROM cohorts c ...` em outro), marcamos como AMBÍGUO e refs com esse
+ * alias são ignoradas (caso contrário gera falso positivo).
+ *
  * Suporta:
  *   FROM users u
  *   FROM users AS u
@@ -305,22 +313,27 @@ function parseCteNames(sql) {
  *   FROM public.users u
  */
 function parseAliases(sql) {
+    // null = ambíguo (alias reusado com tabelas diferentes)
     const out = new Map();
     const re = /(?:FROM|JOIN)\s+(?:public\.)?["']?(\w+)["']?(?:\s+AS\s+|\s+)?["']?(\w+)?["']?(?=\s+(?:ON|USING|WHERE|JOIN|LEFT|RIGHT|INNER|OUTER|FULL|CROSS|GROUP|ORDER|LIMIT|HAVING|RETURNING|\)|$))/gi;
     let m;
     while ((m = re.exec(sql)) !== null) {
-        const table = m[1];
+        const table = m[1].toLowerCase();
         const alias = m[2];
-        if (alias) {
-            // Pula palavras reservadas que vieram como "alias" por erro de parsing
-            if (["WHERE", "GROUP", "ORDER", "ON", "USING", "JOIN", "LEFT"].includes(alias.toUpperCase())) {
-                out.set(table.toLowerCase(), table.toLowerCase());
-                continue;
-            }
-            out.set(alias.toLowerCase(), table.toLowerCase());
+        let key;
+        if (alias &&
+            !["WHERE", "GROUP", "ORDER", "ON", "USING", "JOIN", "LEFT"].includes(alias.toUpperCase())) {
+            key = alias.toLowerCase();
         }
         else {
-            out.set(table.toLowerCase(), table.toLowerCase());
+            key = table;
+        }
+        const existing = out.get(key);
+        if (existing === undefined) {
+            out.set(key, table);
+        }
+        else if (existing !== null && existing !== table) {
+            out.set(key, null); // ambíguo
         }
     }
     return out;

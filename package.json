@@ -1,6 +1,6 @@
 {
   "name": "@kaiketsu/smoke-gate",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "CI gate que bate todos os endpoints HTTP contra um DB real e bloqueia o deploy se algum retornar 500. Pega drift entre código SQL e schema antes da prod.",
   "main": "./dist/core.js",
   "types": "./dist/core.d.ts",

@@ -1,1 +1,1 @@
-{"version":3,"file":"sqlDrift.d.ts","sourceRoot":"","sources":["../../../src/audit/detectors/sqlDrift.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;;;GAkBG;AAGH,OAAO,KAAK,EAAgB,QAAQ,EAAW,MAAM,UAAU,CAAC;AAahE,eAAO,MAAM,gBAAgB,EAAE,QA8D9B,CAAC"}
+{"version":3,"file":"sqlDrift.d.ts","sourceRoot":"","sources":["../../../src/audit/detectors/sqlDrift.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;;;GAkBG;AAGH,OAAO,KAAK,EAAgB,QAAQ,EAAW,MAAM,UAAU,CAAC;AAahE,eAAO,MAAM,gBAAgB,EAAE,QA+D9B,CAAC"}

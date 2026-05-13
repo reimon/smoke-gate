@@ -3,12 +3,16 @@
 /**
  * CLI — smoke-gate audit
  *
- * Uso:
- *   smoke-gate audit [--root PATH] [--migrations PATH]
- *                    [--llm none|anthropic|openai|ollama]
- *                    [--out audit-report.md]
- *                    [--detectors sqlDrift,authGaps,...]
- *                    [--max-llm N]
+ * Dois modos de uso:
+ *
+ * 1) CI / standalone (com API key):
+ *    smoke-gate audit --llm anthropic --out audit-report.md
+ *
+ * 2) Agent-mode (sem API key — agente que invoca consome via stdout):
+ *    smoke-gate audit --json
+ *    → emite JSON com findings determinísticos em stdout
+ *    → o agente (Claude Code, Cursor, etc.) faz o enrichment
+ *      usando a sessão de LLM dele
  */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -55,6 +59,7 @@ function parseArgs(argv) {
         llm: "none",
         out: "audit-report.md",
         maxLlm: 30,
+        json: false,
     };
     for (let i = 1; i < argv.length; i++) {
         const a = argv[i];
@@ -87,6 +92,9 @@ function parseArgs(argv) {
                 args.maxLlm = parseInt(next, 10);
                 i++;
                 break;
+            case "--json":
+                args.json = true;
+                break;
             case "-h":
             case "--help":
                 args.command = "help";
@@ -97,30 +105,37 @@ function parseArgs(argv) {
 }
 function printHelp() {
     // eslint-disable-next-line no-console
-    console.log(`smoke-gate v0.2.0
+    console.log(`smoke-gate v0.2.1
 
 Comandos:
-  audit       Roda detectores estáticos + enriquece com LLM, gera report markdown.
+  audit       Roda detectores estáticos + gera report.
   help        Esta mensagem.
 
-Opções (audit):
-  --root PATH          Root do projeto a auditar (default: cwd)
-  --migrations PATH    Caminho pras migrations .sql (default: auto-detecta api/migrations)
+Modos:
+  1) Standalone (com API key)        smoke-gate audit --llm anthropic
+  2) Agent-mode (sem API key)        smoke-gate audit --json
+     O agente (Claude Code/Cursor) consome o JSON e enriquece com a
+     própria sessão de LLM. Veja docs/agent-mode.md.
+
+Opções:
+  --root PATH          Root do projeto (default: cwd)
+  --migrations PATH    Migrations .sql (default: auto-detecta api/migrations)
   --llm MODE           none | anthropic | openai | ollama (default: none)
-  --out FILE           Arquivo de saída markdown (default: audit-report.md)
-  --detectors LIST     CSV: sqlDrift,authGaps,errorLeak,smokeCoverage (default: todos)
+  --out FILE           Saída markdown (default: audit-report.md)
+  --json               Emite findings como JSON em stdout em vez de markdown
+  --detectors LIST     CSV: sqlDrift,authGaps,errorLeak,smokeCoverage
   --max-llm N          Max findings enriquecidos pelo LLM (default: 30)
 
-Variáveis de ambiente:
-  ANTHROPIC_API_KEY    Necessária para --llm anthropic
-  OPENAI_API_KEY       Necessária para --llm openai
-  OLLAMA_URL           Default http://localhost:11434
-  OLLAMA_MODEL         Default llama3.2
+Env (apenas standalone):
+  ANTHROPIC_API_KEY    --llm anthropic
+  OPENAI_API_KEY       --llm openai
+  OLLAMA_URL           --llm ollama (default localhost:11434)
+  OLLAMA_MODEL         --llm ollama (default llama3.2)
 
 Exemplos:
-  npx smoke-gate audit --llm anthropic
-  npx smoke-gate audit --root ./api --detectors sqlDrift
-  npx smoke-gate audit --llm none --out my-audit.md
+  npx smoke-gate audit                            # offline, markdown
+  npx smoke-gate audit --json                     # pro agente consumir
+  npx smoke-gate audit --llm anthropic --out a.md # standalone com Claude
 `);
 }
 async function main() {
@@ -143,34 +158,59 @@ async function main() {
             return d;
         })
         : undefined;
-    // eslint-disable-next-line no-console
-    console.log(`🔍 smoke-gate audit`);
-    // eslint-disable-next-line no-console
-    console.log(`   root:       ${args.root}`);
-    // eslint-disable-next-line no-console
-    console.log(`   migrations: ${args.migrations ?? "(auto)"}`);
-    // eslint-disable-next-line no-console
-    console.log(`   llm:        ${args.llm}`);
-    // eslint-disable-next-line no-console
-    console.log(`   out:        ${args.out}`);
+    // Logs vão pra stderr no modo --json pra não poluir stdout.
+    const log = args.json
+        ? // eslint-disable-next-line no-console
+            (...a) => console.error(...a)
+        : // eslint-disable-next-line no-console
+            (...a) => console.log(...a);
+    log(`🔍 smoke-gate audit`);
+    log(`   root:       ${args.root}`);
+    log(`   migrations: ${args.migrations ?? "(auto)"}`);
+    log(`   llm:        ${args.json ? "(agent-mode)" : args.llm}`);
+    log(`   out:        ${args.json ? "(stdout JSON)" : args.out}`);
     const result = await (0, index_1.runAudit)({
         root: args.root,
         migrationsPath: args.migrations,
-        llm: args.llm,
+        // Em --json, ignora --llm: agente faz o enrichment.
+        llm: args.json ? "none" : args.llm,
         detectors,
         maxLlmEnrichments: args.maxLlm,
     });
-    fs.writeFileSync(args.out, result.markdown, "utf8");
     const counts = {
         critical: result.findings.filter((f) => f.severity === "critical").length,
         warning: result.findings.filter((f) => f.severity === "warning").length,
         info: result.findings.filter((f) => f.severity === "info").length,
     };
-    // eslint-disable-next-line no-console
-    console.log(`\n📋 ${result.findings.length} findings (🔴 ${counts.critical} critical, 🟡 ${counts.warning} warning, 🔵 ${counts.info} info)`);
-    // eslint-disable-next-line no-console
-    console.log(`✅ Report: ${args.out}`);
-    // Exit code != 0 se houver critical → bloqueia CI
+    if (args.json) {
+        // Schema documentado em docs/agent-mode.md — agentes podem usar isso
+        // como contract pra enriquecer cada finding com o LLM próprio.
+        const payload = {
+            version: "0.2.1",
+            schema: "smoke-gate/audit/findings",
+            root: args.root,
+            counts,
+            findings: result.findings.map((f) => ({
+                code: f.code,
+                detector: f.detector,
+                severity: f.severity,
+                title: f.title,
+                file: f.location.file,
+                line: f.location.line,
+                snippet: f.snippet,
+                evidence: f.evidence,
+                suggestedFix: f.suggestedFix ?? null,
+            })),
+        };
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify(payload, null, 2));
+    }
+    else {
+        fs.writeFileSync(args.out, result.markdown, "utf8");
+        log(`\n✅ Report: ${args.out}`);
+    }
+    log(`\n📋 ${result.findings.length} findings (🔴 ${counts.critical} critical, 🟡 ${counts.warning} warning, 🔵 ${counts.info} info)`);
+    // Exit 2 se houver critical → bloqueia CI
     if (counts.critical > 0)
         process.exit(2);
 }
