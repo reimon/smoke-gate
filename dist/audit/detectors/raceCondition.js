@@ -42,9 +42,9 @@ exports.raceConditionDetector = {
                 const writeMatch = WRITE_QUERY_RE.exec(block);
                 if (!writeMatch)
                     continue;
-                // Há transaction/lock no meio?
-                const between = block.slice(0, writeMatch.index);
-                if (TX_HINT_RE.test(between))
+                // Há transaction/lock no bloco? Inclui o corpo do próprio INSERT/UPDATE
+                // porque `ON CONFLICT` aparece DENTRO do template literal, não antes.
+                if (TX_HINT_RE.test(block))
                     continue;
                 const line = (0, util_1.lineOfIndex)(source, sliceStart);
                 findings.push({
