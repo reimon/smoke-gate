@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { seedTables, cleanupTables, cleanupByCascade } from "./pg.js";
+import { seedTables, cleanupTables, cleanupByCascade } from "./pg";
 
 function fakePool() {
   const calls: Array<{ sql: string; params?: unknown[] }> = [];

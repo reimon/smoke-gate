@@ -5,7 +5,7 @@ import {
   formatReport,
   type SmokeDriver,
   type SmokeResponse,
-} from "./core.js";
+} from "./core";
 
 /** Driver fake — retorna status/body pré-definido por path. */
 function fakeDriver(

@@ -1,10 +1,14 @@
+"use strict";
 /**
  * @kaiketsu/smoke-gate/mocks — utilitários pra mockar middlewares de auth.
  *
  * Não acopla a vitest/jest — retorna funções puras que o consumidor passa
  * pro test runner.
  */
-export function fakeAuth(user) {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.fakeAuth = fakeAuth;
+exports.fakeAuthModule = fakeAuthModule;
+function fakeAuth(user) {
     const filled = {
         email: `${user.id}@smoke.test`,
         role: "aluno",
@@ -23,7 +27,7 @@ export function fakeAuth(user) {
  * @example
  *   vi.mock("../middleware/auth", () => fakeAuthModule({ id: TEST_USER_ID }));
  */
-export function fakeAuthModule(user) {
+function fakeAuthModule(user) {
     return { requireAuth: fakeAuth(user) };
 }
 //# sourceMappingURL=auth.js.map

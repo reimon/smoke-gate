@@ -1,19 +1,26 @@
+"use strict";
 /**
  * @kaiketsu/smoke-gate/express — driver baseado em supertest.
  *
- * Funciona com qualquer app Express (ou compatível: Express 4, 5, Connect,
- * Koa via wrapper). Mede latência via Date.now() em volta do request.
+ * Funciona com qualquer app Express (ou compatível: Express 4, 5, Connect).
+ * Mede latência via Date.now() em volta do request.
+ *
+ * supertest é peer dep — instale junto: `npm i -D supertest`.
  */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.supertestDriver = supertestDriver;
 /**
  * Cria um driver que dispara requests contra um app Express via supertest.
  *
  * @example
  *   import { supertestDriver } from "@kaiketsu/smoke-gate/express";
- *   const driver = await supertestDriver(app);
+ *   const driver = supertestDriver(app);
  */
-export async function supertestDriver(app) {
-    // Lazy import — supertest é peer dep opcional.
-    const { default: request } = (await import("supertest"));
+function supertestDriver(app) {
+    // require dinâmico — permite que consumidores que não usam o adapter
+    // não precisem de supertest instalado.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const request = require("supertest");
     return {
         async request(ep) {
             const agent = request(app);

@@ -1,3 +1,4 @@
+"use strict";
 /**
  * @kaiketsu/smoke-gate — core
  *
@@ -7,13 +8,20 @@
  * Princípio: testa contra DB REAL. O ponto desta lib é pegar drift entre o
  * código SQL e o schema. Mockar `pool.query` derrota o propósito.
  */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SmokeContext = void 0;
+exports.defineSmokeSuite = defineSmokeSuite;
+exports.runSmokeSuite = runSmokeSuite;
+exports.formatReport = formatReport;
 /**
  * Estado compartilhado entre seed → endpoints → teardown.
  * Use `ctx.set(key, value)` no setup pra expor IDs/fixtures para
  * `endpoint.resolve(ctx)` ou pra teardown.
  */
-export class SmokeContext {
-    store = new Map();
+class SmokeContext {
+    constructor() {
+        this.store = new Map();
+    }
     set(key, value) {
         this.store.set(key, value);
         return value;
@@ -29,7 +37,8 @@ export class SmokeContext {
         return v;
     }
 }
-export function defineSmokeSuite(suite) {
+exports.SmokeContext = SmokeContext;
+function defineSmokeSuite(suite) {
     return suite;
 }
 /**
@@ -40,7 +49,7 @@ export function defineSmokeSuite(suite) {
  *   const report = await runSmokeSuite(suite);
  *   if (report.failed > 0) throw new Error(formatReport(report));
  */
-export async function runSmokeSuite(suite) {
+async function runSmokeSuite(suite) {
     const ctx = new SmokeContext();
     const startedAt = Date.now();
     const results = [];
@@ -122,7 +131,7 @@ export async function runSmokeSuite(suite) {
 /**
  * Formata o report como texto pra exibir em falha de CI.
  */
-export function formatReport(report) {
+function formatReport(report) {
     const lines = [
         `smoke-gate: ${report.suite}`,
         `  total=${report.total} passed=${report.passed} failed=${report.failed} errors=${report.errors} (${report.durationMs}ms)`,

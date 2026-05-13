@@ -1,3 +1,4 @@
+"use strict";
 /**
  * @kaiketsu/smoke-gate/pg — helpers de fixture para Postgres.
  *
@@ -5,7 +6,11 @@
  * O ponto da lib é testar contra schema real — então deixamos o consumidor
  * escrever o SQL dele se quiser, mas oferecemos atalhos seguros.
  */
-export async function seedTables(pool, specs) {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.seedTables = seedTables;
+exports.cleanupTables = cleanupTables;
+exports.cleanupByCascade = cleanupByCascade;
+async function seedTables(pool, specs) {
     const returned = [];
     for (const spec of specs) {
         if (spec.values.length === 0) {
@@ -43,7 +48,7 @@ export async function seedTables(pool, specs) {
  *
  * Ordem importa — limpe filhos antes de pais.
  */
-export async function cleanupTables(pool, specs) {
+async function cleanupTables(pool, specs) {
     for (const spec of specs) {
         assertIdent(spec.table);
         await pool.query(`DELETE FROM "${spec.table}" WHERE ${spec.where}`, spec.params);
@@ -53,7 +58,7 @@ export async function cleanupTables(pool, specs) {
  * Atalho: limpa uma cascata partindo de uma tabela "raiz" via FK ON DELETE
  * CASCADE. Útil quando o seu schema tem `users` como pai natural.
  */
-export async function cleanupByCascade(pool, rootTable, where, params) {
+async function cleanupByCascade(pool, rootTable, where, params) {
     assertIdent(rootTable);
     await pool.query(`DELETE FROM "${rootTable}" WHERE ${where}`, params);
 }

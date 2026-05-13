@@ -1,30 +1,42 @@
 {
   "name": "@kaiketsu/smoke-gate",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CI gate que bate todos os endpoints HTTP contra um DB real e bloqueia o deploy se algum retornar 500. Pega drift entre código SQL e schema antes da prod.",
-  "type": "module",
   "main": "./dist/core.js",
   "types": "./dist/core.d.ts",
   "exports": {
     ".": {
       "types": "./dist/core.d.ts",
-      "import": "./dist/core.js"
+      "require": "./dist/core.js",
+      "default": "./dist/core.js"
     },
     "./express": {
       "types": "./dist/adapters/express.d.ts",
-      "import": "./dist/adapters/express.js"
+      "require": "./dist/adapters/express.js",
+      "default": "./dist/adapters/express.js"
     },
     "./pg": {
       "types": "./dist/db/pg.d.ts",
-      "import": "./dist/db/pg.js"
+      "require": "./dist/db/pg.js",
+      "default": "./dist/db/pg.js"
     },
     "./mocks": {
       "types": "./dist/mocks/auth.d.ts",
-      "import": "./dist/mocks/auth.js"
+      "require": "./dist/mocks/auth.js",
+      "default": "./dist/mocks/auth.js"
     },
     "./vitest": {
       "types": "./dist/vitest.d.ts",
-      "import": "./dist/vitest.js"
+      "require": "./dist/vitest.js",
+      "default": "./dist/vitest.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "express": ["./dist/adapters/express.d.ts"],
+      "pg": ["./dist/db/pg.d.ts"],
+      "mocks": ["./dist/mocks/auth.d.ts"],
+      "vitest": ["./dist/vitest.d.ts"]
     }
   },
   "files": [

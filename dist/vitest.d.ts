@@ -4,7 +4,7 @@
  * Gera `it.each()` automaticamente a partir de uma suite. Cada endpoint vira
  * um teste com nome legível e falha individual — assim CI mostra qual quebrou.
  */
-import { type SmokeSuite } from "./core.js";
+import { type SmokeSuite } from "./core";
 /**
  * Registra a suite no vitest. Cada endpoint vira `it()` separado.
  *

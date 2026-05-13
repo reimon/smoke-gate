@@ -10,7 +10,7 @@ import {
   type SmokeSuite,
   SmokeContext,
   runSmokeSuite,
-} from "./core.js";
+} from "./core";
 
 /**
  * Registra a suite no vitest. Cada endpoint vira `it()` separado.
