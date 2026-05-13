@@ -10,16 +10,19 @@
  *   npx smoke-gate audit --llm anthropic --out audit.md
  */
 import { authGapsDetector } from "./detectors/authGaps";
+import { dbMockInTestDetector } from "./detectors/dbMockInTest";
 import { errorLeakDetector } from "./detectors/errorLeak";
+import { raceConditionDetector } from "./detectors/raceCondition";
 import { smokeCoverageDetector } from "./detectors/smokeCoverage";
 import { sqlDriftDetector } from "./detectors/sqlDrift";
+import { unsafeJsonParseDetector } from "./detectors/unsafeJsonParse";
 import { type LlmMode } from "./llm/index";
 import { formatMarkdown } from "./report/markdown";
 import type { AuditContext, Detector, EnrichedFinding, Finding } from "./types";
 import { defineConfig, type SmokeGateConfig } from "../config";
 export { defineConfig };
 export type { SmokeGateConfig };
-export { authGapsDetector, errorLeakDetector, smokeCoverageDetector, sqlDriftDetector, };
+export { authGapsDetector, dbMockInTestDetector, errorLeakDetector, raceConditionDetector, smokeCoverageDetector, sqlDriftDetector, unsafeJsonParseDetector, };
 export type { AuditContext, Detector, EnrichedFinding, Finding, LlmMode, };
 export { formatMarkdown };
 export interface RunAuditOptions {

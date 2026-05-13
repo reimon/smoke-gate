@@ -152,6 +152,9 @@ async function startMcpServer() {
                 "sqlDrift",
                 "authGaps",
                 "errorLeak",
+                "unsafeJsonParse",
+                "dbMockInTest",
+                "raceCondition",
                 "smokeCoverage",
             ]))
                 .optional()
@@ -167,14 +170,12 @@ async function startMcpServer() {
             sqlDrift: index_2.sqlDriftDetector,
             authGaps: index_2.authGapsDetector,
             errorLeak: index_2.errorLeakDetector,
+            unsafeJsonParse: index_2.unsafeJsonParseDetector,
+            dbMockInTest: index_2.dbMockInTestDetector,
+            raceCondition: index_2.raceConditionDetector,
             smokeCoverage: index_2.smokeCoverageDetector,
         };
-        const list = detectors?.map((n) => detectorMap[n]) ?? [
-            index_2.sqlDriftDetector,
-            index_2.authGapsDetector,
-            index_2.errorLeakDetector,
-            index_2.smokeCoverageDetector,
-        ];
+        const list = detectors?.map((n) => detectorMap[n]) ?? Object.values(detectorMap);
         const result = await (0, index_1.runAudit)({
             root,
             detectors: list,

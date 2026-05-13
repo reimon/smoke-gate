@@ -301,7 +301,8 @@ Comenta inline em PRs, bloqueia merge em criticals. Veja [action/README.md](acti
 - [x] v0.3.1 — GitHub Action (composite + sticky PR comments)
 - [x] v0.4 — `smoke-gate.config.{ts,js,mjs,cjs}` custom detectors + overrides
 - [x] v0.4.1 — `--since <ref>` (audit em <200ms quando o PR é pequeno)
-- [ ] v0.5 — polyglot via Treesitter (Python/Go/Ruby)
+- [x] v0.5 — 3 detectores novos: `unsafeJsonParse`, `dbMockInTest`, `raceCondition`
+- [ ] v0.6 — polyglot via Treesitter (Python/Go/Ruby)
 - [ ] v0.6 — Sentry/Datadog bridge (audit ↔ prod errors)
 - [ ] v0.7 — Test generation from findings + migration synthesis
 

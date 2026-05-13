@@ -44,17 +44,23 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.formatMarkdown = exports.sqlDriftDetector = exports.smokeCoverageDetector = exports.errorLeakDetector = exports.authGapsDetector = exports.defineConfig = void 0;
+exports.formatMarkdown = exports.unsafeJsonParseDetector = exports.sqlDriftDetector = exports.smokeCoverageDetector = exports.raceConditionDetector = exports.errorLeakDetector = exports.dbMockInTestDetector = exports.authGapsDetector = exports.defineConfig = void 0;
 exports.runAudit = runAudit;
 const path = __importStar(require("path"));
 const authGaps_1 = require("./detectors/authGaps");
 Object.defineProperty(exports, "authGapsDetector", { enumerable: true, get: function () { return authGaps_1.authGapsDetector; } });
+const dbMockInTest_1 = require("./detectors/dbMockInTest");
+Object.defineProperty(exports, "dbMockInTestDetector", { enumerable: true, get: function () { return dbMockInTest_1.dbMockInTestDetector; } });
 const errorLeak_1 = require("./detectors/errorLeak");
 Object.defineProperty(exports, "errorLeakDetector", { enumerable: true, get: function () { return errorLeak_1.errorLeakDetector; } });
+const raceCondition_1 = require("./detectors/raceCondition");
+Object.defineProperty(exports, "raceConditionDetector", { enumerable: true, get: function () { return raceCondition_1.raceConditionDetector; } });
 const smokeCoverage_1 = require("./detectors/smokeCoverage");
 Object.defineProperty(exports, "smokeCoverageDetector", { enumerable: true, get: function () { return smokeCoverage_1.smokeCoverageDetector; } });
 const sqlDrift_1 = require("./detectors/sqlDrift");
 Object.defineProperty(exports, "sqlDriftDetector", { enumerable: true, get: function () { return sqlDrift_1.sqlDriftDetector; } });
+const unsafeJsonParse_1 = require("./detectors/unsafeJsonParse");
+Object.defineProperty(exports, "unsafeJsonParseDetector", { enumerable: true, get: function () { return unsafeJsonParse_1.unsafeJsonParseDetector; } });
 const index_1 = require("./llm/index");
 const markdown_1 = require("./report/markdown");
 Object.defineProperty(exports, "formatMarkdown", { enumerable: true, get: function () { return markdown_1.formatMarkdown; } });
@@ -65,6 +71,9 @@ const ALL_DETECTORS = [
     sqlDrift_1.sqlDriftDetector,
     authGaps_1.authGapsDetector,
     errorLeak_1.errorLeakDetector,
+    unsafeJsonParse_1.unsafeJsonParseDetector,
+    dbMockInTest_1.dbMockInTestDetector,
+    raceCondition_1.raceConditionDetector,
     smokeCoverage_1.smokeCoverageDetector,
 ];
 /**

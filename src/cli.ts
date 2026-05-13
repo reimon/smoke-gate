@@ -22,6 +22,9 @@ import {
   authGapsDetector,
   errorLeakDetector,
   smokeCoverageDetector,
+  unsafeJsonParseDetector,
+  dbMockInTestDetector,
+  raceConditionDetector,
 } from "./audit/index";
 
 interface CliArgs {
@@ -123,7 +126,7 @@ Opções:
   --json               Emite findings como JSON em stdout em vez de markdown
   --since REF          Audita só arquivos modificados desde ref git (ex: origin/main)
   --files CSV          Lista explícita de arquivos (alternativa a --since)
-  --detectors LIST     CSV: sqlDrift,authGaps,errorLeak,smokeCoverage
+  --detectors LIST     CSV: sqlDrift,authGaps,errorLeak,unsafeJsonParse,dbMockInTest,raceCondition,smokeCoverage
   --max-llm N          Max findings enriquecidos pelo LLM (default: 30)
 
 Env (apenas standalone):
@@ -168,6 +171,9 @@ async function main(): Promise<void> {
     authGaps: authGapsDetector,
     errorLeak: errorLeakDetector,
     smokeCoverage: smokeCoverageDetector,
+    unsafeJsonParse: unsafeJsonParseDetector,
+    dbMockInTest: dbMockInTestDetector,
+    raceCondition: raceConditionDetector,
   };
   const detectors = args.detectors
     ? args.detectors.map((n) => {

@@ -12,9 +12,12 @@
 
 import * as path from "path";
 import { authGapsDetector } from "./detectors/authGaps";
+import { dbMockInTestDetector } from "./detectors/dbMockInTest";
 import { errorLeakDetector } from "./detectors/errorLeak";
+import { raceConditionDetector } from "./detectors/raceCondition";
 import { smokeCoverageDetector } from "./detectors/smokeCoverage";
 import { sqlDriftDetector } from "./detectors/sqlDrift";
+import { unsafeJsonParseDetector } from "./detectors/unsafeJsonParse";
 import { getLlmAdapter, type LlmMode } from "./llm/index";
 import { formatMarkdown } from "./report/markdown";
 import type {
@@ -36,9 +39,12 @@ export type { SmokeGateConfig };
 
 export {
   authGapsDetector,
+  dbMockInTestDetector,
   errorLeakDetector,
+  raceConditionDetector,
   smokeCoverageDetector,
   sqlDriftDetector,
+  unsafeJsonParseDetector,
 };
 export type {
   AuditContext,
@@ -53,6 +59,9 @@ const ALL_DETECTORS: Detector[] = [
   sqlDriftDetector,
   authGapsDetector,
   errorLeakDetector,
+  unsafeJsonParseDetector,
+  dbMockInTestDetector,
+  raceConditionDetector,
   smokeCoverageDetector,
 ];
 

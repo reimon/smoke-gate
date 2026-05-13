@@ -26,6 +26,9 @@ import {
   authGapsDetector,
   errorLeakDetector,
   smokeCoverageDetector,
+  unsafeJsonParseDetector,
+  dbMockInTestDetector,
+  raceConditionDetector,
 } from "../audit/index";
 import { getSchema, invalidateSchema } from "./schemaCache";
 import { checkSql } from "./checkSql";
@@ -150,6 +153,9 @@ export async function startMcpServer(): Promise<void> {
               "sqlDrift",
               "authGaps",
               "errorLeak",
+              "unsafeJsonParse",
+              "dbMockInTest",
+              "raceCondition",
               "smokeCoverage",
             ]),
           )
@@ -167,14 +173,12 @@ export async function startMcpServer(): Promise<void> {
         sqlDrift: sqlDriftDetector,
         authGaps: authGapsDetector,
         errorLeak: errorLeakDetector,
+        unsafeJsonParse: unsafeJsonParseDetector,
+        dbMockInTest: dbMockInTestDetector,
+        raceCondition: raceConditionDetector,
         smokeCoverage: smokeCoverageDetector,
       };
-      const list = detectors?.map((n) => detectorMap[n]) ?? [
-        sqlDriftDetector,
-        authGapsDetector,
-        errorLeakDetector,
-        smokeCoverageDetector,
-      ];
+      const list = detectors?.map((n) => detectorMap[n]) ?? Object.values(detectorMap);
       const result = await runAudit({
         root,
         detectors: list,
