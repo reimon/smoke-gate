@@ -27,7 +27,8 @@ import { defineSmokeSuite } from "@kaiketsu/smoke-gate";
 import { supertestDriver } from "@kaiketsu/smoke-gate/express";
 import { seedTables, cleanupByCascade } from "@kaiketsu/smoke-gate/pg";
 import { fakeAuth } from "@kaiketsu/smoke-gate/mocks";
-import { registerVitestSuite } from "@kaiketsu/smoke-gate/vitest";
+import { describe, it, beforeAll, afterAll, expect } from "vitest";
+import { SmokeContext } from "@kaiketsu/smoke-gate";
 import express from "express";
 import { pool } from "../db/pool";
 import myRouter from "../routes/myRouter";
@@ -78,7 +79,28 @@ const suite = defineSmokeSuite({
   expect: { notStatuses: [500], maxLatencyMs: 5000 },
 });
 
-registerVitestSuite(suite);
+// Bridge inline pra vitest (15 linhas — mantém a lib agnóstica de test runner):
+describe(suite.name, () => {
+  const ctx = new SmokeContext();
+  beforeAll(async () => suite.setup?.(ctx));
+  afterAll(async () => suite.teardown?.(ctx));
+
+  const notStatuses = suite.expect?.notStatuses ?? [500];
+  for (const ep of suite.endpoints) {
+    it(`${ep.method} ${ep.path}`, async () => {
+      const resolved = ep.resolve?.(ctx) ?? {};
+      const res = await suite.driver.request({
+        ...ep,
+        path: resolved.path ?? ep.path,
+        body: resolved.body ?? ep.body,
+      });
+      const explicitOk = ep.okStatuses?.includes(res.status) ?? false;
+      if (notStatuses.includes(res.status) && !explicitOk) {
+        throw new Error(`status ${res.status}: ${JSON.stringify(res.body)}`);
+      }
+    });
+  }
+});
 ```
 
 Cada endpoint vira um `it()` separado — CI mostra exatamente qual quebrou.

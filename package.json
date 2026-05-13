@@ -1,6 +1,6 @@
 {
   "name": "@kaiketsu/smoke-gate",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "CI gate que bate todos os endpoints HTTP contra um DB real e bloqueia o deploy se algum retornar 500. Pega drift entre código SQL e schema antes da prod.",
   "main": "./dist/core.js",
   "types": "./dist/core.d.ts",
@@ -24,19 +24,13 @@
       "types": "./dist/mocks/auth.d.ts",
       "require": "./dist/mocks/auth.js",
       "default": "./dist/mocks/auth.js"
-    },
-    "./vitest": {
-      "types": "./dist/vitest.d.ts",
-      "require": "./dist/vitest.js",
-      "default": "./dist/vitest.js"
     }
   },
   "typesVersions": {
     "*": {
       "express": ["./dist/adapters/express.d.ts"],
       "pg": ["./dist/db/pg.d.ts"],
-      "mocks": ["./dist/mocks/auth.d.ts"],
-      "vitest": ["./dist/vitest.d.ts"]
+      "mocks": ["./dist/mocks/auth.d.ts"]
     }
   },
   "files": [
