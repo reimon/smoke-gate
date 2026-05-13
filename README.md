@@ -256,6 +256,33 @@ Config no Claude Code (`~/.claude.json`):
 
 Tools: `audit_check_sql`, `schema_lookup`, `audit_run`, `audit_explain`, `audit_apply_fix`, `invalidate_schema`. Veja [docs/MCP.md](docs/MCP.md).
 
+## Custom detectors (v0.4)
+
+Cria `smoke-gate.config.{ts,js,mjs,cjs}` no root do projeto. Cada empresa registra detectores próprios — multiplica adoção sem você commitar nada.
+
+```ts
+import { defineConfig, type Detector } from "@kaiketsu/smoke-gate";
+
+const auditLogRequired: Detector = {
+  name: "auditLogRequired",
+  async run(ctx) {
+    // ... encontra rotas /admin/* sem auditLog()
+    return findings;
+  },
+};
+
+export default defineConfig({
+  detectors: [auditLogRequired],
+  disable: ["smokeCoverage"],          // desliga built-in que não importa
+  severityOverrides: { "AUTH-001": "warning" },
+  ignore: ["legacy/**"],
+});
+```
+
+Para `.ts` sem build, instale `tsx`: `npm i -D tsx`. Ou compile pra `.js`.
+
+Exemplo completo com 2 detectores reais (`adminAuditLogRequired`, `crossFeatureImports`) em [`examples/custom-detectors/smoke-gate.config.ts`](examples/custom-detectors/smoke-gate.config.ts).
+
 ## GitHub Action (v0.3.1)
 
 `.github/workflows/audit.yml`:
@@ -272,7 +299,8 @@ Comenta inline em PRs, bloqueia merge em criticals. Veja [action/README.md](acti
 - [x] v0.2 — `smoke-gate audit` CLI + 4 detectores + 4 LLM modes
 - [x] v0.3 — MCP server (agent-native, <50ms check_sql)
 - [x] v0.3.1 — GitHub Action (composite + sticky PR comments)
-- [ ] v0.4 — `smoke-gate.config.ts` custom detectors API + `--diff-only`
+- [x] v0.4 — `smoke-gate.config.{ts,js,mjs,cjs}` custom detectors + overrides
+- [ ] v0.4.1 — `--diff-only` (audita só arquivos do PR)
 - [ ] v0.5 — polyglot via Treesitter (Python/Go/Ruby)
 - [ ] v0.6 — Sentry/Datadog bridge (audit ↔ prod errors)
 - [ ] v0.7 — Test generation from findings + migration synthesis

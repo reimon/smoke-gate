@@ -24,6 +24,15 @@ import type {
   Finding,
 } from "./types";
 import { readFileSafe } from "./util";
+import {
+  applyConfigToDetectors,
+  loadConfig,
+  defineConfig,
+  type SmokeGateConfig,
+} from "../config";
+
+export { defineConfig };
+export type { SmokeGateConfig };
 
 export {
   authGapsDetector,
@@ -69,13 +78,21 @@ export interface AuditResult {
  */
 export async function runAudit(opts: RunAuditOptions): Promise<AuditResult> {
   const root = path.resolve(opts.root);
+
+  // Carrega smoke-gate.config.{ts,js,mjs,cjs} se existir.
+  // Permite o usuário registrar detectores próprios, desabilitar built-in,
+  // e overrides de severity sem tocar no código do framework.
+  const userConfig = await loadConfig(root);
+
   const ctx: AuditContext = {
     root,
-    migrationsPath: opts.migrationsPath,
-    ignore: opts.ignore,
+    migrationsPath: opts.migrationsPath ?? userConfig.migrationsPath,
+    ignore: [...(opts.ignore ?? []), ...(userConfig.ignore ?? [])],
   };
 
-  const detectors = opts.detectors ?? ALL_DETECTORS;
+  // Determina lista de detectores: explicito > config + built-in.
+  const detectors =
+    opts.detectors ?? applyConfigToDetectors(ALL_DETECTORS, userConfig);
   const llmMode: LlmMode = opts.llm ?? "none";
   const adapter = getLlmAdapter(llmMode);
   const maxEnrich = opts.maxLlmEnrichments ?? 30;
@@ -92,6 +109,13 @@ export async function runAudit(opts: RunAuditOptions): Promise<AuditResult> {
         `[audit] detector ${det.name} falhou: ${(err as Error).message}`,
       );
     }
+  }
+
+  // Aplica severityOverrides do config (ex: AUTH-001 → warning).
+  const overrides = userConfig.severityOverrides ?? {};
+  for (const f of allFindings) {
+    const o = overrides[f.code];
+    if (o) f.severity = o;
   }
 
   // Enrich

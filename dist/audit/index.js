@@ -44,7 +44,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.formatMarkdown = exports.sqlDriftDetector = exports.smokeCoverageDetector = exports.errorLeakDetector = exports.authGapsDetector = void 0;
+exports.formatMarkdown = exports.sqlDriftDetector = exports.smokeCoverageDetector = exports.errorLeakDetector = exports.authGapsDetector = exports.defineConfig = void 0;
 exports.runAudit = runAudit;
 const path = __importStar(require("path"));
 const authGaps_1 = require("./detectors/authGaps");
@@ -59,6 +59,8 @@ const index_1 = require("./llm/index");
 const markdown_1 = require("./report/markdown");
 Object.defineProperty(exports, "formatMarkdown", { enumerable: true, get: function () { return markdown_1.formatMarkdown; } });
 const util_1 = require("./util");
+const config_1 = require("../config");
+Object.defineProperty(exports, "defineConfig", { enumerable: true, get: function () { return config_1.defineConfig; } });
 const ALL_DETECTORS = [
     sqlDrift_1.sqlDriftDetector,
     authGaps_1.authGapsDetector,
@@ -70,12 +72,17 @@ const ALL_DETECTORS = [
  */
 async function runAudit(opts) {
     const root = path.resolve(opts.root);
+    // Carrega smoke-gate.config.{ts,js,mjs,cjs} se existir.
+    // Permite o usuário registrar detectores próprios, desabilitar built-in,
+    // e overrides de severity sem tocar no código do framework.
+    const userConfig = await (0, config_1.loadConfig)(root);
     const ctx = {
         root,
-        migrationsPath: opts.migrationsPath,
-        ignore: opts.ignore,
+        migrationsPath: opts.migrationsPath ?? userConfig.migrationsPath,
+        ignore: [...(opts.ignore ?? []), ...(userConfig.ignore ?? [])],
     };
-    const detectors = opts.detectors ?? ALL_DETECTORS;
+    // Determina lista de detectores: explicito > config + built-in.
+    const detectors = opts.detectors ?? (0, config_1.applyConfigToDetectors)(ALL_DETECTORS, userConfig);
     const llmMode = opts.llm ?? "none";
     const adapter = (0, index_1.getLlmAdapter)(llmMode);
     const maxEnrich = opts.maxLlmEnrichments ?? 30;
@@ -90,6 +97,13 @@ async function runAudit(opts) {
             // eslint-disable-next-line no-console
             console.error(`[audit] detector ${det.name} falhou: ${err.message}`);
         }
+    }
+    // Aplica severityOverrides do config (ex: AUTH-001 → warning).
+    const overrides = userConfig.severityOverrides ?? {};
+    for (const f of allFindings) {
+        const o = overrides[f.code];
+        if (o)
+            f.severity = o;
     }
     // Enrich
     const enriched = [];
