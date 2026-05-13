@@ -1,0 +1,196 @@
+name: "smoke-gate audit"
+description: "Roda smoke-gate audit no PR e comenta findings inline. Bloqueia merge em criticals."
+author: "Reimon Gonçalves"
+branding:
+  icon: "shield"
+  color: "red"
+
+inputs:
+  fail-on:
+    description: "Falha o job se houver findings dessa severidade ou maior. critical | warning | none"
+    required: false
+    default: "critical"
+  diff-only:
+    description: "Só audita arquivos modificados no PR (mais rápido)."
+    required: false
+    default: "false"
+  detectors:
+    description: "CSV de detectores. Ex: sqlDrift,authGaps. Default: todos."
+    required: false
+    default: ""
+  migrations:
+    description: "Caminho para diretório de migrations (auto-detecta api/migrations)."
+    required: false
+    default: ""
+  root:
+    description: "Root do projeto a auditar."
+    required: false
+    default: "."
+  comment:
+    description: "Modo de comentário no PR: inline (uma linha por finding), summary (1 comentário sticky), none."
+    required: false
+    default: "summary"
+  github-token:
+    description: "Token pra postar comentário no PR. Default: GITHUB_TOKEN do workflow."
+    required: false
+    default: ${{ github.token }}
+  smoke-gate-version:
+    description: "Tag/branch do smoke-gate a usar (ex: v0.3.1)."
+    required: false
+    default: "v0.3.0"
+
+outputs:
+  critical-count:
+    description: "Número de findings críticos."
+    value: ${{ steps.audit.outputs.critical }}
+  warning-count:
+    description: "Número de findings warning."
+    value: ${{ steps.audit.outputs.warning }}
+  report-path:
+    description: "Caminho do report JSON."
+    value: ${{ steps.audit.outputs.report }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+
+    - name: Run smoke-gate audit
+      id: audit
+      shell: bash
+      working-directory: ${{ inputs.root }}
+      env:
+        DETECTORS: ${{ inputs.detectors }}
+        MIGRATIONS: ${{ inputs.migrations }}
+      run: |
+        set -e
+        REPORT=/tmp/smoke-gate-audit.json
+        ARGS="audit --json"
+        [ -n "$DETECTORS" ] && ARGS="$ARGS --detectors $DETECTORS"
+        [ -n "$MIGRATIONS" ] && ARGS="$ARGS --migrations $MIGRATIONS"
+        npx -y "github:reimon/smoke-gate#${{ inputs.smoke-gate-version }}" $ARGS > "$REPORT" 2> /tmp/sg.err || true
+        cat /tmp/sg.err >&2
+
+        CRIT=$(jq '.counts.critical' "$REPORT")
+        WARN=$(jq '.counts.warning' "$REPORT")
+        INFO=$(jq '.counts.info' "$REPORT")
+        echo "critical=$CRIT" >> "$GITHUB_OUTPUT"
+        echo "warning=$WARN" >> "$GITHUB_OUTPUT"
+        echo "info=$INFO" >> "$GITHUB_OUTPUT"
+        echo "report=$REPORT" >> "$GITHUB_OUTPUT"
+
+        echo "::notice::smoke-gate: $CRIT critical, $WARN warning, $INFO info"
+
+    - name: Post PR summary comment
+      if: ${{ github.event_name == 'pull_request' && inputs.comment == 'summary' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPORT: ${{ steps.audit.outputs.report }}
+      run: |
+        # Sticky comment via marker. Atualiza se já existir.
+        MARKER="<!-- smoke-gate-summary -->"
+        BODY=$(jq -r '
+          "## 🔍 smoke-gate audit\n\n" +
+          "**Total:** \(.counts.critical + .counts.warning + .counts.info) " +
+          "(🔴 \(.counts.critical) critical, 🟡 \(.counts.warning) warning, 🔵 \(.counts.info) info)\n\n" +
+          (if (.findings | map(select(.severity == "critical")) | length) > 0 then
+            "### 🔴 Critical findings\n\n" +
+            ([.findings[] | select(.severity == "critical") | "- `\(.file):\(.line)` — \(.title)"] | join("\n")) +
+            "\n\n"
+          else "" end) +
+          (if (.findings | map(select(.severity == "warning")) | length) > 0 then
+            "### 🟡 Warning (top 10)\n\n" +
+            ([.findings[] | select(.severity == "warning")][0:10] | map("- `\(.file):\(.line)` — \(.title)") | join("\n")) +
+            "\n\n"
+          else "" end) +
+          "<details><summary>Como corrigir</summary>\n\nRode local: `npx smoke-gate audit` (sem --json para markdown completo) ou veja [docs](https://github.com/reimon/smoke-gate#readme).</details>"
+        ' "$REPORT")
+
+        FULL_BODY="${MARKER}
+        ${BODY}"
+
+        PR=${{ github.event.pull_request.number }}
+        REPO=${{ github.repository }}
+
+        # Procura comentário existente com o marker
+        EXISTING_ID=$(gh api "repos/$REPO/issues/$PR/comments" \
+          --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -1)
+
+        if [ -n "$EXISTING_ID" ]; then
+          gh api "repos/$REPO/issues/comments/$EXISTING_ID" -X PATCH \
+            -f body="$FULL_BODY" > /dev/null
+          echo "✓ Updated existing comment $EXISTING_ID"
+        else
+          gh pr comment "$PR" --body "$FULL_BODY"
+          echo "✓ Created new comment"
+        fi
+
+    - name: Post inline review comments
+      if: ${{ github.event_name == 'pull_request' && inputs.comment == 'inline' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPORT: ${{ steps.audit.outputs.report }}
+      run: |
+        # Inline: 1 review com 1 comment por finding crítico/warning.
+        # Cada comment fica no file:line correto. Sticky por finding code.
+        PR=${{ github.event.pull_request.number }}
+        REPO=${{ github.repository }}
+
+        # Body do review
+        REVIEW_BODY="smoke-gate audit: $(jq -r '.counts.critical' $REPORT) critical, $(jq -r '.counts.warning' $REPORT) warning"
+
+        # Comments array
+        COMMENTS=$(jq '[
+          .findings[]
+          | select(.severity == "critical" or .severity == "warning")
+          | {
+              path: .file,
+              line: .line,
+              side: "RIGHT",
+              body: "**\(.severity | ascii_upcase): \(.title)**\n\n\(.evidence)" +
+                    (if .suggestedFix then "\n\n💡 \(.suggestedFix)" else "" end) +
+                    "\n\n_— smoke-gate \(.code)_"
+            }
+        ]' "$REPORT")
+
+        if [ "$(echo "$COMMENTS" | jq 'length')" = "0" ]; then
+          echo "Sem findings críticos/warning pra comentar inline."
+          exit 0
+        fi
+
+        # GitHub API espera commit_id do HEAD do PR
+        HEAD_SHA=${{ github.event.pull_request.head.sha }}
+
+        echo "{\"commit_id\": \"$HEAD_SHA\", \"body\": \"$REVIEW_BODY\", \"event\": \"COMMENT\", \"comments\": $COMMENTS}" \
+          | gh api "repos/$REPO/pulls/$PR/reviews" --input -
+        echo "✓ Review posted"
+
+    - name: Fail if threshold exceeded
+      shell: bash
+      env:
+        FAIL_ON: ${{ inputs.fail-on }}
+        CRIT: ${{ steps.audit.outputs.critical }}
+        WARN: ${{ steps.audit.outputs.warning }}
+      run: |
+        case "$FAIL_ON" in
+          critical)
+            if [ "$CRIT" -gt 0 ]; then
+              echo "::error::smoke-gate: $CRIT critical findings — bloqueando merge"
+              exit 1
+            fi
+            ;;
+          warning)
+            if [ "$CRIT" -gt 0 ] || [ "$WARN" -gt 0 ]; then
+              echo "::error::smoke-gate: $CRIT critical + $WARN warning — bloqueando merge"
+              exit 1
+            fi
+            ;;
+          none)
+            echo "::notice::fail-on=none — não bloqueia"
+            ;;
+        esac

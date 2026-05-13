@@ -236,15 +236,46 @@ Com LLM: o report ganha explicação contextual + diff unificado + comando bash 
   run: npx smoke-gate audit --llm anthropic --out audit-report.md
 ```
 
+## Modo MCP (v0.3+) — agent-native
+
+`smoke-gate mcp serve` expõe detectores como ferramentas MCP. Claude Code, Cursor, Cline, Continue, Zed, Windsurf consomem nativamente.
+
+Killer feature: **`audit_check_sql`** valida uma query SQL contra o schema em **<50ms** (cache em memória). Agente chama **antes** de gerar a SQL → previne bug.
+
+Config no Claude Code (`~/.claude.json`):
+```json
+{
+  "mcpServers": {
+    "smoke-gate": {
+      "command": "npx",
+      "args": ["-y", "github:reimon/smoke-gate#v0.3.1", "mcp", "serve"]
+    }
+  }
+}
+```
+
+Tools: `audit_check_sql`, `schema_lookup`, `audit_run`, `audit_explain`, `audit_apply_fix`, `invalidate_schema`. Veja [docs/MCP.md](docs/MCP.md).
+
+## GitHub Action (v0.3.1)
+
+`.github/workflows/audit.yml`:
+```yaml
+- uses: reimon/smoke-gate/action@v0.3.1
+  with: { fail-on: critical, comment: summary }
+```
+
+Comenta inline em PRs, bloqueia merge em criticals. Veja [action/README.md](action/README.md).
+
 ## Roadmap
 
 - [x] v0.1 — core + Express + pg + receita vitest
 - [x] v0.2 — `smoke-gate audit` CLI + 4 detectores + 4 LLM modes
-- [ ] v0.3 — adapter Fastify + Drizzle/Prisma
-- [ ] v0.4 — adapter Next.js API Routes
-- [ ] v0.5 — mais detectores (race patterns, JSON.parse sem try, mocked DB tests)
-- [ ] v0.6 — modo `--apply` (aplicar fixes via patch automaticamente)
-- [ ] v0.7 — GitHub Action `kaiketsu/smoke-gate-action@v1` (polyglot)
+- [x] v0.3 — MCP server (agent-native, <50ms check_sql)
+- [x] v0.3.1 — GitHub Action (composite + sticky PR comments)
+- [ ] v0.4 — `smoke-gate.config.ts` custom detectors API + `--diff-only`
+- [ ] v0.5 — polyglot via Treesitter (Python/Go/Ruby)
+- [ ] v0.6 — Sentry/Datadog bridge (audit ↔ prod errors)
+- [ ] v0.7 — Test generation from findings + migration synthesis
 
 ## Licença
 
