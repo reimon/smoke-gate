@@ -44,6 +44,12 @@ Adicione `// smoke-gate-ignore-file` nas primeiras 500 chars do arquivo. Útil p
 Sem LLM: o report tem o fix sugerido pelo detector (regex/heuristic).
 Com LLM: o report ganha explicação contextual + diff unificado + comando bash pronto pra colar.
 
+### Cache
+
+Resultados de enrichment são cacheados em `.smoke-gate/llm-cache.json` por hash de `code + file + line + snippet + mode`. Re-runs sobre o mesmo finding (PR sem mudança no trecho) saem do cache em vez de pagar LLM. Cache é versionado e ignora entradas de versões antigas após bump. Adicione `.smoke-gate/` ao `.gitignore`.
+
+Pra desabilitar: `--no-cache` ou opção `noCache: true` na API.
+
 ## Output
 
 `audit-report.md` agrupado por severidade. Exit code **2** se houver findings críticos — bloqueia merge se rodar em CI:

@@ -61,6 +61,7 @@ const sqlDrift_1 = require("./detectors/sqlDrift");
 Object.defineProperty(exports, "sqlDriftDetector", { enumerable: true, get: function () { return sqlDrift_1.sqlDriftDetector; } });
 const unsafeJsonParse_1 = require("./detectors/unsafeJsonParse");
 Object.defineProperty(exports, "unsafeJsonParseDetector", { enumerable: true, get: function () { return unsafeJsonParse_1.unsafeJsonParseDetector; } });
+const cache_1 = require("./llm/cache");
 const index_1 = require("./llm/index");
 const markdown_1 = require("./report/markdown");
 Object.defineProperty(exports, "formatMarkdown", { enumerable: true, get: function () { return markdown_1.formatMarkdown; } });
@@ -130,6 +131,11 @@ async function runAudit(opts) {
         if (o)
             f.severity = o;
     }
+    // Cache de LLM enrichment (skipado em modo "none" ou --no-cache).
+    const cache = llmMode !== "none" && !opts.noCache
+        ? new cache_1.LlmCache((0, cache_1.defaultCachePath)(root))
+        : null;
+    cache?.load();
     // Enrich
     const enriched = [];
     let enrichedCount = 0;
@@ -140,16 +146,35 @@ async function runAudit(opts) {
             enriched.push(f);
             continue;
         }
+        const cached = cache?.get(f, llmMode);
+        if (cached) {
+            enriched.push({
+                ...f,
+                llmExplanation: cached.llmExplanation,
+                llmFix: cached.llmFix,
+                llmCommand: cached.llmCommand,
+            });
+            enrichedCount++;
+            continue;
+        }
         try {
             const fileContext = getFileContext(root, f);
             const extra = await adapter.enrich(f, fileContext);
             enriched.push({ ...f, ...extra });
+            cache?.set(f, llmMode, extra);
             enrichedCount++;
         }
         catch (err) {
             // eslint-disable-next-line no-console
             console.error(`[audit] LLM enrich falhou em ${f.code}: ${err.message}`);
             enriched.push(f);
+        }
+    }
+    if (cache) {
+        cache.save();
+        if (cache.hits + cache.misses > 0) {
+            // eslint-disable-next-line no-console
+            console.error(`[audit] llm-cache: ${cache.hits} hits, ${cache.misses} misses`);
         }
     }
     const markdown = (0, markdown_1.formatMarkdown)(enriched, {

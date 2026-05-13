@@ -47,6 +47,11 @@ export interface RunAuditOptions {
      * Alternativa a `since` quando você já sabe quais arquivos mudaram.
      */
     files?: string[];
+    /**
+     * Desabilita o cache de LLM enrichment em `.smoke-gate/llm-cache.json`.
+     * Default: cache ligado em todos os modos != "none".
+     */
+    noCache?: boolean;
 }
 export interface AuditResult {
     findings: EnrichedFinding[];

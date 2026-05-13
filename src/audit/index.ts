@@ -18,6 +18,7 @@ import { raceConditionDetector } from "./detectors/raceCondition";
 import { smokeCoverageDetector } from "./detectors/smokeCoverage";
 import { sqlDriftDetector } from "./detectors/sqlDrift";
 import { unsafeJsonParseDetector } from "./detectors/unsafeJsonParse";
+import { LlmCache, defaultCachePath } from "./llm/cache";
 import { getLlmAdapter, type LlmMode } from "./llm/index";
 import { formatMarkdown } from "./report/markdown";
 import type {
@@ -87,6 +88,11 @@ export interface RunAuditOptions {
    * Alternativa a `since` quando você já sabe quais arquivos mudaram.
    */
   files?: string[];
+  /**
+   * Desabilita o cache de LLM enrichment em `.smoke-gate/llm-cache.json`.
+   * Default: cache ligado em todos os modos != "none".
+   */
+  noCache?: boolean;
 }
 
 export interface AuditResult {
@@ -156,6 +162,13 @@ export async function runAudit(opts: RunAuditOptions): Promise<AuditResult> {
     if (o) f.severity = o;
   }
 
+  // Cache de LLM enrichment (skipado em modo "none" ou --no-cache).
+  const cache =
+    llmMode !== "none" && !opts.noCache
+      ? new LlmCache(defaultCachePath(root))
+      : null;
+  cache?.load();
+
   // Enrich
   const enriched: EnrichedFinding[] = [];
   let enrichedCount = 0;
@@ -168,10 +181,22 @@ export async function runAudit(opts: RunAuditOptions): Promise<AuditResult> {
       enriched.push(f);
       continue;
     }
+    const cached = cache?.get(f, llmMode);
+    if (cached) {
+      enriched.push({
+        ...f,
+        llmExplanation: cached.llmExplanation,
+        llmFix: cached.llmFix,
+        llmCommand: cached.llmCommand,
+      });
+      enrichedCount++;
+      continue;
+    }
     try {
       const fileContext = getFileContext(root, f);
       const extra = await adapter.enrich(f, fileContext);
       enriched.push({ ...f, ...extra });
+      cache?.set(f, llmMode, extra);
       enrichedCount++;
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -179,6 +204,16 @@ export async function runAudit(opts: RunAuditOptions): Promise<AuditResult> {
         `[audit] LLM enrich falhou em ${f.code}: ${(err as Error).message}`,
       );
       enriched.push(f);
+    }
+  }
+
+  if (cache) {
+    cache.save();
+    if (cache.hits + cache.misses > 0) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[audit] llm-cache: ${cache.hits} hits, ${cache.misses} misses`,
+      );
     }
   }
 

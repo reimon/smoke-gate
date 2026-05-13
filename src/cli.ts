@@ -41,6 +41,8 @@ interface CliArgs {
   since?: string;
   /** Lista explícita de arquivos (alternativa a since). */
   files?: string[];
+  /** Desabilita cache de LLM enrichment em .smoke-gate/llm-cache.json. */
+  noCache: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -51,6 +53,7 @@ function parseArgs(argv: string[]): CliArgs {
     out: "audit-report.md",
     maxLlm: 30,
     json: false,
+    noCache: false,
   };
   for (let i = 1; i < argv.length; i++) {
     const a = argv[i];
@@ -94,6 +97,9 @@ function parseArgs(argv: string[]): CliArgs {
         args.files = next.split(",").map((s) => s.trim()).filter(Boolean);
         i++;
         break;
+      case "--no-cache":
+        args.noCache = true;
+        break;
       case "-h":
       case "--help":
         args.command = "help";
@@ -128,6 +134,7 @@ Opções:
   --files CSV          Lista explícita de arquivos (alternativa a --since)
   --detectors LIST     CSV: sqlDrift,authGaps,errorLeak,unsafeJsonParse,dbMockInTest,raceCondition,smokeCoverage
   --max-llm N          Max findings enriquecidos pelo LLM (default: 30)
+  --no-cache           Desabilita cache de LLM em .smoke-gate/llm-cache.json
 
 Env (apenas standalone):
   ANTHROPIC_API_KEY    --llm anthropic
@@ -208,6 +215,7 @@ async function main(): Promise<void> {
     maxLlmEnrichments: args.maxLlm,
     since: args.since,
     files: args.files,
+    noCache: args.noCache,
   });
 
   const counts = {
