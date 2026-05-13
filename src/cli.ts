@@ -90,10 +90,11 @@ function parseArgs(argv: string[]): CliArgs {
 
 function printHelp(): void {
   // eslint-disable-next-line no-console
-  console.log(`smoke-gate v0.2.1
+  console.log(`smoke-gate v0.3.0
 
 Comandos:
   audit       Roda detectores estáticos + gera report.
+  mcp serve   Inicia MCP server (stdio) — agentes consomem detectores como tools.
   help        Esta mensagem.
 
 Modos:
@@ -125,7 +126,23 @@ Exemplos:
 }
 
 async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  const command = argv[0] ?? "help";
+
+  // `smoke-gate mcp serve` — inicia MCP server stdio
+  if (command === "mcp") {
+    const sub = argv[1];
+    if (sub === "serve") {
+      const { startMcpServer } = await import("./mcp/server");
+      await startMcpServer();
+      return;
+    }
+    // eslint-disable-next-line no-console
+    console.error(`Uso: smoke-gate mcp serve`);
+    process.exit(2);
+  }
+
+  const args = parseArgs(argv);
 
   if (args.command !== "audit") {
     printHelp();

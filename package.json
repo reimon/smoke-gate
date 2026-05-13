@@ -1,6 +1,6 @@
 {
   "name": "@kaiketsu/smoke-gate",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "CI gate que bate todos os endpoints HTTP contra um DB real e bloqueia o deploy se algum retornar 500. Pega drift entre código SQL e schema antes da prod.",
   "main": "./dist/core.js",
   "types": "./dist/core.d.ts",
@@ -36,10 +36,18 @@
   },
   "typesVersions": {
     "*": {
-      "express": ["./dist/adapters/express.d.ts"],
-      "pg": ["./dist/db/pg.d.ts"],
-      "mocks": ["./dist/mocks/auth.d.ts"],
-      "audit": ["./dist/audit/index.d.ts"]
+      "express": [
+        "./dist/adapters/express.d.ts"
+      ],
+      "pg": [
+        "./dist/db/pg.d.ts"
+      ],
+      "mocks": [
+        "./dist/mocks/auth.d.ts"
+      ],
+      "audit": [
+        "./dist/audit/index.d.ts"
+      ]
     }
   },
   "files": [
@@ -68,14 +76,20 @@
     "url": "https://github.com/reimon/smoke-gate.git"
   },
   "peerDependencies": {
-    "supertest": ">=6",
     "pg": ">=8",
+    "supertest": ">=6",
     "vitest": ">=1"
   },
   "peerDependenciesMeta": {
-    "supertest": { "optional": true },
-    "pg": { "optional": true },
-    "vitest": { "optional": true }
+    "supertest": {
+      "optional": true
+    },
+    "pg": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/node": "^22",
@@ -85,5 +99,9 @@
     "supertest": "^7.0.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
   }
 }
