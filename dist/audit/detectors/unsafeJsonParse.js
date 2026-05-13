@@ -1,4 +1,5 @@
 "use strict";
+// smoke-gate-ignore-file — contém JSON.parse como padrão de detecção, não execução
 /**
  * unsafeJsonParse — encontra JSON.parse() em contexto sem try/catch.
  *
@@ -25,6 +26,8 @@ exports.unsafeJsonParseDetector = {
         for (const fp of files) {
             const source = (0, util_1.readFileSafe)(fp);
             if (!source)
+                continue;
+            if ((0, util_1.hasIgnoreSentinel)(source))
                 continue;
             // Skip test files — JSON.parse em fixtures é OK
             if (/\.(test|spec)\.[tj]sx?$/.test(fp))

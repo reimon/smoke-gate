@@ -1,4 +1,5 @@
 "use strict";
+// smoke-gate-ignore-file
 /**
  * authGaps — encontra rotas Express com params de userId/profileId que
  * NÃO usam middleware de ownership check.
@@ -29,6 +30,8 @@ exports.authGapsDetector = {
         for (const fp of files) {
             const source = (0, util_1.readFileSafe)(fp);
             if (!source)
+                continue;
+            if ((0, util_1.hasIgnoreSentinel)(source))
                 continue;
             // Se o router file já aplica auth middleware no topo (router.use(...))
             // OU se é claramente um admin router (mounted sob /admin/* no app.ts,

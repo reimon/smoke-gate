@@ -1,4 +1,5 @@
 "use strict";
+// smoke-gate-ignore-file
 /**
  * errorLeak — encontra responses 500 que vazam err.message bruta pro cliente.
  *
@@ -25,6 +26,8 @@ exports.errorLeakDetector = {
         for (const fp of files) {
             const source = (0, util_1.readFileSafe)(fp);
             if (!source)
+                continue;
+            if ((0, util_1.hasIgnoreSentinel)(source))
                 continue;
             let m;
             while ((m = STATUS_500_RE.exec(source)) !== null) {

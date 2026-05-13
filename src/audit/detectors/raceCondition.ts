@@ -1,3 +1,4 @@
+// smoke-gate-ignore-file
 /**
  * raceCondition — encontra padrões check-then-act sem transação.
  *
@@ -18,6 +19,7 @@ import type { AuditContext, Detector, Finding } from "../types";
 import {
   applyFileFilter,
   extractSnippet,
+  hasIgnoreSentinel,
   lineOfIndex,
   readFileSafe,
   relPath,
@@ -49,6 +51,7 @@ export const raceConditionDetector: Detector = {
     for (const fp of files) {
       const source = readFileSafe(fp);
       if (!source) continue;
+      if (hasIgnoreSentinel(source)) continue;
 
       let m: RegExpExecArray | null;
       while ((m = SELECT_QUERY_RE.exec(source)) !== null) {

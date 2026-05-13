@@ -1,3 +1,4 @@
+// smoke-gate-ignore-file
 /**
  * dbMockInTest — encontra testes que mockam pool/db diretamente.
  *
@@ -13,6 +14,7 @@ import type { AuditContext, Detector, Finding } from "../types";
 import {
   applyFileFilter,
   extractSnippet,
+  hasIgnoreSentinel,
   lineOfIndex,
   readFileSafe,
   relPath,
@@ -40,6 +42,7 @@ export const dbMockInTestDetector: Detector = {
     for (const fp of files) {
       const source = readFileSafe(fp);
       if (!source) continue;
+      if (hasIgnoreSentinel(source)) continue;
 
       // Skip smoke tests — eles são o oposto deste anti-pattern.
       if (/\.smoke\.test\.[tj]sx?$/.test(fp)) continue;

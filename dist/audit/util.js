@@ -38,6 +38,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.walkFiles = walkFiles;
 exports.readFileSafe = readFileSafe;
+exports.hasIgnoreSentinel = hasIgnoreSentinel;
 exports.lineOfIndex = lineOfIndex;
 exports.extractSnippet = extractSnippet;
 exports.relPath = relPath;
@@ -97,6 +98,16 @@ function readFileSafe(fp) {
     catch {
         return "";
     }
+}
+const IGNORE_SENTINEL = "smoke-gate-ignore-file";
+/**
+ * Arquivo declara `// smoke-gate-ignore-file` no topo? Detectores devem pular.
+ * Usado pelos próprios arquivos de detector pra evitar self-match nos padrões
+ * de referência (regex, exemplos em comentário), e disponível pra usuários
+ * marcarem arquivos legados/gerados.
+ */
+function hasIgnoreSentinel(source) {
+    return source.slice(0, 500).includes(IGNORE_SENTINEL);
 }
 /** Calcula linha (1-based) de um índice de caractere no source. */
 function lineOfIndex(source, idx) {

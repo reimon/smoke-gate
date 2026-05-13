@@ -1,4 +1,5 @@
 "use strict";
+// smoke-gate-ignore-file
 /**
  * raceCondition — encontra padrões check-then-act sem transação.
  *
@@ -29,6 +30,8 @@ exports.raceConditionDetector = {
         for (const fp of files) {
             const source = (0, util_1.readFileSafe)(fp);
             if (!source)
+                continue;
+            if ((0, util_1.hasIgnoreSentinel)(source))
                 continue;
             let m;
             while ((m = SELECT_QUERY_RE.exec(source)) !== null) {

@@ -61,6 +61,18 @@ export function readFileSafe(fp: string): string {
   }
 }
 
+const IGNORE_SENTINEL = "smoke-gate-ignore-file";
+
+/**
+ * Arquivo declara `// smoke-gate-ignore-file` no topo? Detectores devem pular.
+ * Usado pelos próprios arquivos de detector pra evitar self-match nos padrões
+ * de referência (regex, exemplos em comentário), e disponível pra usuários
+ * marcarem arquivos legados/gerados.
+ */
+export function hasIgnoreSentinel(source: string): boolean {
+  return source.slice(0, 500).includes(IGNORE_SENTINEL);
+}
+
 /** Calcula linha (1-based) de um índice de caractere no source. */
 export function lineOfIndex(source: string, idx: number): number {
   let line = 1;

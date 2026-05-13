@@ -8,6 +8,13 @@
 export declare function walkFiles(root: string, exts: string[], ignore?: string[]): string[];
 /** Lê arquivo retornando string vazia em erro (evita try/catch repetido). */
 export declare function readFileSafe(fp: string): string;
+/**
+ * Arquivo declara `// smoke-gate-ignore-file` no topo? Detectores devem pular.
+ * Usado pelos próprios arquivos de detector pra evitar self-match nos padrões
+ * de referência (regex, exemplos em comentário), e disponível pra usuários
+ * marcarem arquivos legados/gerados.
+ */
+export declare function hasIgnoreSentinel(source: string): boolean;
 /** Calcula linha (1-based) de um índice de caractere no source. */
 export declare function lineOfIndex(source: string, idx: number): number;
 /** Extrai N linhas centradas em torno de uma linha (1-based). */
