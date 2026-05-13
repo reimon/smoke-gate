@@ -75,7 +75,7 @@ exports.sqlDriftDetector = {
             ];
         }
         const findings = [];
-        const codeFiles = (0, util_1.walkFiles)(ctx.root, [".ts", ".js"], ctx.ignore);
+        const codeFiles = (0, util_1.applyFileFilter)((0, util_1.walkFiles)(ctx.root, [".ts", ".js"], ctx.ignore), ctx.root, ctx.fileFilter);
         for (const fp of codeFiles) {
             const source = (0, util_1.readFileSafe)(fp);
             if (!source)

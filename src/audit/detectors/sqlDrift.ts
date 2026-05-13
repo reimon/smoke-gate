@@ -21,6 +21,7 @@
 import * as path from "path";
 import type { AuditContext, Detector, Finding } from "../types";
 import {
+  applyFileFilter,
   extractSnippet,
   lineOfIndex,
   readFileSafe,
@@ -54,7 +55,11 @@ export const sqlDriftDetector: Detector = {
     }
 
     const findings: Finding[] = [];
-    const codeFiles = walkFiles(ctx.root, [".ts", ".js"], ctx.ignore);
+    const codeFiles = applyFileFilter(
+      walkFiles(ctx.root, [".ts", ".js"], ctx.ignore),
+      ctx.root,
+      ctx.fileFilter,
+    );
 
     for (const fp of codeFiles) {
       const source = readFileSafe(fp);

@@ -76,10 +76,26 @@ async function runAudit(opts) {
     // Permite o usuário registrar detectores próprios, desabilitar built-in,
     // e overrides de severity sem tocar no código do framework.
     const userConfig = await (0, config_1.loadConfig)(root);
+    // Resolve fileFilter a partir de opts.files / opts.since.
+    let fileFilter;
+    if (opts.files && opts.files.length > 0) {
+        fileFilter = new Set(opts.files);
+    }
+    else if (opts.since) {
+        const changed = (0, util_1.gitDiffFiles)(root, opts.since);
+        if (changed.length === 0) {
+            // eslint-disable-next-line no-console
+            console.error(`[audit] since=${opts.since}: 0 arquivos modificados (ou git falhou). Auditoria full.`);
+        }
+        else {
+            fileFilter = new Set(changed);
+        }
+    }
     const ctx = {
         root,
         migrationsPath: opts.migrationsPath ?? userConfig.migrationsPath,
         ignore: [...(opts.ignore ?? []), ...(userConfig.ignore ?? [])],
+        fileFilter,
     };
     // Determina lista de detectores: explicito > config + built-in.
     const detectors = opts.detectors ?? (0, config_1.applyConfigToDetectors)(ALL_DETECTORS, userConfig);

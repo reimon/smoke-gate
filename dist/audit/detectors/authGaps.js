@@ -25,7 +25,7 @@ exports.authGapsDetector = {
     name: "authGaps",
     async run(ctx) {
         const findings = [];
-        const files = (0, util_1.walkFiles)(ctx.root, [".ts"], ctx.ignore).filter((f) => /routes\//i.test(f) || /api\/.+routes/i.test(f));
+        const files = (0, util_1.applyFileFilter)((0, util_1.walkFiles)(ctx.root, [".ts"], ctx.ignore).filter((f) => /routes\//i.test(f) || /api\/.+routes/i.test(f)), ctx.root, ctx.fileFilter);
         for (const fp of files) {
             const source = (0, util_1.readFileSafe)(fp);
             if (!source)

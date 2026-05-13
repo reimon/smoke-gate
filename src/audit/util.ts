@@ -93,3 +93,38 @@ export function extractSnippet(
 export function relPath(root: string, abs: string): string {
   return path.relative(root, abs);
 }
+
+/**
+ * Filtra lista de arquivos absolutos por uma whitelist relativa ao root.
+ * Se filter for undefined, retorna a lista intacta.
+ */
+export function applyFileFilter(
+  files: string[],
+  root: string,
+  filter: Set<string> | undefined,
+): string[] {
+  if (!filter) return files;
+  return files.filter((f) => filter.has(path.relative(root, f)));
+}
+
+/**
+ * Roda `git diff --name-only <base>...HEAD` e devolve a lista de arquivos
+ * modificados (relativos ao root do repo). Retorna [] se git falhar.
+ *
+ * `base` pode ser: "main", "origin/main", "HEAD~5", commit SHA, etc.
+ */
+export function gitDiffFiles(root: string, base: string): string[] {
+  const child = require("child_process") as typeof import("child_process");
+  try {
+    const out = child.execSync(
+      `git -C "${root}" diff --name-only ${base}...HEAD`,
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    );
+    return out
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}

@@ -27,6 +27,11 @@ export const smokeCoverageDetector: Detector = {
   async run(ctx: AuditContext): Promise<Finding[]> {
     const findings: Finding[] = [];
 
+    // Em modo diff-only (fileFilter setado), pular: precisamos enumerar
+    // todas as rotas + todos os smoke tests pra fazer o diff. Audit
+    // parcial dá relatório enganoso.
+    if (ctx.fileFilter) return findings;
+
     // 1. Pega todas as rotas declaradas
     const routeFiles = walkFiles(ctx.root, [".ts"], ctx.ignore).filter((f) =>
       /routes\//i.test(f),

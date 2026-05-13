@@ -41,6 +41,8 @@ exports.readFileSafe = readFileSafe;
 exports.lineOfIndex = lineOfIndex;
 exports.extractSnippet = extractSnippet;
 exports.relPath = relPath;
+exports.applyFileFilter = applyFileFilter;
+exports.gitDiffFiles = gitDiffFiles;
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 /**
@@ -122,5 +124,33 @@ function extractSnippet(source, line, context = 2) {
 /** Caminho relativo ao root (útil pra report). */
 function relPath(root, abs) {
     return path.relative(root, abs);
+}
+/**
+ * Filtra lista de arquivos absolutos por uma whitelist relativa ao root.
+ * Se filter for undefined, retorna a lista intacta.
+ */
+function applyFileFilter(files, root, filter) {
+    if (!filter)
+        return files;
+    return files.filter((f) => filter.has(path.relative(root, f)));
+}
+/**
+ * Roda `git diff --name-only <base>...HEAD` e devolve a lista de arquivos
+ * modificados (relativos ao root do repo). Retorna [] se git falhar.
+ *
+ * `base` pode ser: "main", "origin/main", "HEAD~5", commit SHA, etc.
+ */
+function gitDiffFiles(root, base) {
+    const child = require("child_process");
+    try {
+        const out = child.execSync(`git -C "${root}" diff --name-only ${base}...HEAD`, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+        return out
+            .split("\n")
+            .map((s) => s.trim())
+            .filter(Boolean);
+    }
+    catch {
+        return [];
+    }
 }
 //# sourceMappingURL=util.js.map

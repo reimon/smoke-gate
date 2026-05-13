@@ -84,9 +84,11 @@ async function loadConfig(projectRoot) {
     if (!configPath)
         return {};
     const ext = path.extname(configPath);
-    // .ts/.mts precisam de transpiler. Tenta tsx primeiro.
+    // .ts/.mts precisam de transpiler. Tenta tsx primeiro, procurando
+    // primeiro no projeto do usuário (que provavelmente já tem) e depois
+    // no smoke-gate (que não tem como dep direta — opcional).
     if (ext === ".ts" || ext === ".mts") {
-        const tsxLoaded = await tryRegisterTsx();
+        const tsxLoaded = await tryRegisterTsx(projectRoot);
         if (!tsxLoaded) {
             // eslint-disable-next-line no-console
             console.error(`[smoke-gate] ${configPath}: requer 'tsx' instalado pra carregar TS sem build. ` +
@@ -113,29 +115,30 @@ async function loadConfig(projectRoot) {
 }
 let tsxAttempted = false;
 let tsxLoaded = false;
-async function tryRegisterTsx() {
+async function tryRegisterTsx(projectRoot) {
     if (tsxAttempted)
         return tsxLoaded;
     tsxAttempted = true;
-    try {
-        // tsx auto-registra hooks ao ser importado
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        require("tsx/cjs");
-        tsxLoaded = true;
-        return true;
-    }
-    catch {
-        // tenta ts-node como fallback
+    // Tenta primeiro o tsx do projeto do usuário (provavelmente já tem)
+    const candidates = [
+        path.join(projectRoot, "node_modules", "tsx", "cjs"),
+        path.join(projectRoot, "node_modules", "tsx", "dist", "cjs"),
+        "tsx/cjs",
+        path.join(projectRoot, "node_modules", "ts-node", "register"),
+        "ts-node/register",
+    ];
+    for (const c of candidates) {
         try {
             // eslint-disable-next-line @typescript-eslint/no-var-requires
-            require("ts-node/register");
+            require(c);
             tsxLoaded = true;
             return true;
         }
         catch {
-            return false;
+            // próximo candidato
         }
     }
+    return false;
 }
 /**
  * Aplica overrides da config a uma lista de detectores built-in.

@@ -30,16 +30,23 @@ Comportamento default:
 ## Configuração
 
 ```yaml
-- uses: reimon/smoke-gate/action@v0.3.1
+- uses: reimon/smoke-gate/action@v0.4.1
   with:
     fail-on: critical          # critical | warning | none
     comment: summary           # summary | inline | none
-    diff-only: false           # (planejado) só arquivos mudados
+    diff-only: true            # só arquivos do PR (default true). false = audita tudo.
+    base-ref: origin/main      # ref pra diff (default: github.base_ref ou origin/main)
     detectors: sqlDrift,errorLeak  # subset
     migrations: api/migrations # override
     root: .
-    smoke-gate-version: v0.3.0
+    smoke-gate-version: v0.4.1
 ```
+
+### Diff-only (default em PRs)
+
+A action roda em modo `--since <base-ref>` por padrão: audita só os arquivos modificados no PR. Tempo cai de **minutos pra segundos** mesmo em monorepos grandes. Vira required check sem fricção.
+
+Quando `diff-only: false`, audita o repo inteiro (útil pra nightly cron jobs).
 
 ## Modos de comentário
 

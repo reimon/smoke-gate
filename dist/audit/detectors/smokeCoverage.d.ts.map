@@ -1,1 +1,1 @@
-{"version":3,"file":"smokeCoverage.d.ts","sourceRoot":"","sources":["../../../src/audit/detectors/smokeCoverage.ts"],"names":[],"mappings":"AAAA;;;;;;;GAOG;AAEH,OAAO,KAAK,EAAgB,QAAQ,EAAW,MAAM,UAAU,CAAC;AAchE,eAAO,MAAM,qBAAqB,EAAE,QAgFnC,CAAC"}
+{"version":3,"file":"smokeCoverage.d.ts","sourceRoot":"","sources":["../../../src/audit/detectors/smokeCoverage.ts"],"names":[],"mappings":"AAAA;;;;;;;GAOG;AAEH,OAAO,KAAK,EAAgB,QAAQ,EAAW,MAAM,UAAU,CAAC;AAchE,eAAO,MAAM,qBAAqB,EAAE,QAqFnC,CAAC"}

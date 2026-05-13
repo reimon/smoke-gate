@@ -23,7 +23,7 @@ import type {
   EnrichedFinding,
   Finding,
 } from "./types";
-import { readFileSafe } from "./util";
+import { gitDiffFiles, readFileSafe } from "./util";
 import {
   applyConfigToDetectors,
   loadConfig,
@@ -66,6 +66,18 @@ export interface RunAuditOptions {
   llm?: LlmMode;
   /** Máximo de findings a enriquecer com LLM (rate-limit/cost). Default: 30. */
   maxLlmEnrichments?: number;
+  /**
+   * Auditar só arquivos modificados desde um ref git (ex: "origin/main",
+   * "HEAD~3", "abc1234"). Roda `git diff --name-only <since>...HEAD`.
+   * Reduz tempo de audit em PRs grandes de minutos pra segundos.
+   * smokeCoverage é skipado em modo --since (precisa visão global).
+   */
+  since?: string;
+  /**
+   * Lista explícita de arquivos (paths relativos ao root) a auditar.
+   * Alternativa a `since` quando você já sabe quais arquivos mudaram.
+   */
+  files?: string[];
 }
 
 export interface AuditResult {
@@ -84,10 +96,27 @@ export async function runAudit(opts: RunAuditOptions): Promise<AuditResult> {
   // e overrides de severity sem tocar no código do framework.
   const userConfig = await loadConfig(root);
 
+  // Resolve fileFilter a partir de opts.files / opts.since.
+  let fileFilter: Set<string> | undefined;
+  if (opts.files && opts.files.length > 0) {
+    fileFilter = new Set(opts.files);
+  } else if (opts.since) {
+    const changed = gitDiffFiles(root, opts.since);
+    if (changed.length === 0) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[audit] since=${opts.since}: 0 arquivos modificados (ou git falhou). Auditoria full.`,
+      );
+    } else {
+      fileFilter = new Set(changed);
+    }
+  }
+
   const ctx: AuditContext = {
     root,
     migrationsPath: opts.migrationsPath ?? userConfig.migrationsPath,
     ignore: [...(opts.ignore ?? []), ...(userConfig.ignore ?? [])],
+    fileFilter,
   };
 
   // Determina lista de detectores: explicito > config + built-in.

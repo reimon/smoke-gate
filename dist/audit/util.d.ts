@@ -14,4 +14,16 @@ export declare function lineOfIndex(source: string, idx: number): number;
 export declare function extractSnippet(source: string, line: number, context?: number): string;
 /** Caminho relativo ao root (útil pra report). */
 export declare function relPath(root: string, abs: string): string;
+/**
+ * Filtra lista de arquivos absolutos por uma whitelist relativa ao root.
+ * Se filter for undefined, retorna a lista intacta.
+ */
+export declare function applyFileFilter(files: string[], root: string, filter: Set<string> | undefined): string[];
+/**
+ * Roda `git diff --name-only <base>...HEAD` e devolve a lista de arquivos
+ * modificados (relativos ao root do repo). Retorna [] se git falhar.
+ *
+ * `base` pode ser: "main", "origin/main", "HEAD~5", commit SHA, etc.
+ */
+export declare function gitDiffFiles(root: string, base: string): string[];
 //# sourceMappingURL=util.d.ts.map

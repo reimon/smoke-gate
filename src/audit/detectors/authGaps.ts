@@ -13,6 +13,7 @@
 
 import type { AuditContext, Detector, Finding } from "../types";
 import {
+  applyFileFilter,
   extractSnippet,
   lineOfIndex,
   readFileSafe,
@@ -38,8 +39,12 @@ export const authGapsDetector: Detector = {
 
   async run(ctx: AuditContext): Promise<Finding[]> {
     const findings: Finding[] = [];
-    const files = walkFiles(ctx.root, [".ts"], ctx.ignore).filter((f) =>
-      /routes\//i.test(f) || /api\/.+routes/i.test(f),
+    const files = applyFileFilter(
+      walkFiles(ctx.root, [".ts"], ctx.ignore).filter(
+        (f) => /routes\//i.test(f) || /api\/.+routes/i.test(f),
+      ),
+      ctx.root,
+      ctx.fileFilter,
     );
 
     for (const fp of files) {

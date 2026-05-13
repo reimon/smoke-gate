@@ -95,6 +95,14 @@ function parseArgs(argv) {
             case "--json":
                 args.json = true;
                 break;
+            case "--since":
+                args.since = next;
+                i++;
+                break;
+            case "--files":
+                args.files = next.split(",").map((s) => s.trim()).filter(Boolean);
+                i++;
+                break;
             case "-h":
             case "--help":
                 args.command = "help";
@@ -124,6 +132,8 @@ Opções:
   --llm MODE           none | anthropic | openai | ollama (default: none)
   --out FILE           Saída markdown (default: audit-report.md)
   --json               Emite findings como JSON em stdout em vez de markdown
+  --since REF          Audita só arquivos modificados desde ref git (ex: origin/main)
+  --files CSV          Lista explícita de arquivos (alternativa a --since)
   --detectors LIST     CSV: sqlDrift,authGaps,errorLeak,smokeCoverage
   --max-llm N          Max findings enriquecidos pelo LLM (default: 30)
 
@@ -191,6 +201,8 @@ async function main() {
         llm: args.json ? "none" : args.llm,
         detectors,
         maxLlmEnrichments: args.maxLlm,
+        since: args.since,
+        files: args.files,
     });
     const counts = {
         critical: result.findings.filter((f) => f.severity === "critical").length,

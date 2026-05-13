@@ -32,6 +32,18 @@ export interface RunAuditOptions {
     llm?: LlmMode;
     /** Máximo de findings a enriquecer com LLM (rate-limit/cost). Default: 30. */
     maxLlmEnrichments?: number;
+    /**
+     * Auditar só arquivos modificados desde um ref git (ex: "origin/main",
+     * "HEAD~3", "abc1234"). Roda `git diff --name-only <since>...HEAD`.
+     * Reduz tempo de audit em PRs grandes de minutos pra segundos.
+     * smokeCoverage é skipado em modo --since (precisa visão global).
+     */
+    since?: string;
+    /**
+     * Lista explícita de arquivos (paths relativos ao root) a auditar.
+     * Alternativa a `since` quando você já sabe quais arquivos mudaram.
+     */
+    files?: string[];
 }
 export interface AuditResult {
     findings: EnrichedFinding[];

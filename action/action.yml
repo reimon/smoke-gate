@@ -11,9 +11,13 @@ inputs:
     required: false
     default: "critical"
   diff-only:
-    description: "Só audita arquivos modificados no PR (mais rápido)."
+    description: "Só audita arquivos modificados no PR (audit em segundos vs minutos)."
     required: false
-    default: "false"
+    default: "true"
+  base-ref:
+    description: "Ref git base pra diff (default: github.base_ref do PR, ou origin/main)."
+    required: false
+    default: ""
   detectors:
     description: "CSV de detectores. Ex: sqlDrift,authGaps. Default: todos."
     required: false
@@ -58,6 +62,30 @@ runs:
       with:
         node-version: "20"
 
+    - name: Determine base ref (for diff-only)
+      id: baseref
+      shell: bash
+      env:
+        DIFF_ONLY: ${{ inputs.diff-only }}
+        INPUT_BASE: ${{ inputs.base-ref }}
+        PR_BASE: ${{ github.base_ref }}
+      run: |
+        if [ "$DIFF_ONLY" != "true" ]; then
+          echo "ref=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        REF="$INPUT_BASE"
+        if [ -z "$REF" ] && [ -n "$PR_BASE" ]; then
+          REF="origin/$PR_BASE"
+        fi
+        if [ -z "$REF" ]; then
+          REF="origin/main"
+        fi
+        # Garante que o ref existe localmente (actions/checkout default = shallow).
+        git -C "${{ inputs.root }}" fetch --no-tags --depth=50 origin "${REF#origin/}" 2>/dev/null || true
+        echo "ref=$REF" >> "$GITHUB_OUTPUT"
+        echo "::notice::smoke-gate diff base: $REF"
+
     - name: Run smoke-gate audit
       id: audit
       shell: bash
@@ -65,12 +93,14 @@ runs:
       env:
         DETECTORS: ${{ inputs.detectors }}
         MIGRATIONS: ${{ inputs.migrations }}
+        SINCE: ${{ steps.baseref.outputs.ref }}
       run: |
         set -e
         REPORT=/tmp/smoke-gate-audit.json
         ARGS="audit --json"
         [ -n "$DETECTORS" ] && ARGS="$ARGS --detectors $DETECTORS"
         [ -n "$MIGRATIONS" ] && ARGS="$ARGS --migrations $MIGRATIONS"
+        [ -n "$SINCE" ] && ARGS="$ARGS --since $SINCE"
         npx -y "github:reimon/smoke-gate#${{ inputs.smoke-gate-version }}" $ARGS > "$REPORT" 2> /tmp/sg.err || true
         cat /tmp/sg.err >&2
 

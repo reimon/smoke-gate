@@ -42,6 +42,12 @@ export interface AuditContext {
     routesPath?: string;
     /** Caminhos a ignorar. */
     ignore?: string[];
+    /**
+     * Whitelist de arquivos (paths relativos ao root). Quando setado,
+     * detectores só consideram esses arquivos. Usado por --diff-only.
+     * undefined = sem filtro (audita tudo).
+     */
+    fileFilter?: Set<string>;
 }
 export interface Detector {
     name: string;
